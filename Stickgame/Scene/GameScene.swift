@@ -19,6 +19,7 @@ final class GameScene: SKScene {
     var playerFace = SKNode()
     var controlsNode = SKNode()
     var startPos = SKNode()
+    var velo1 = SKNode()
     
     var ground = SKNode()
     
@@ -39,7 +40,9 @@ final class GameScene: SKScene {
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) { handleControlTouch(touches: touches, hasMoved: true) }
     
-    override func didMove(to view: SKView) {        
+    override func didMove(to view: SKView) {
+        physicsWorld.contactDelegate = self
+        view.ignoresSiblingOrder = true
         guard let playerContainer = childNode(withName: "playerContainer"),
             let playerBall = playerContainer.childNode(withName: "Player"),
             let playerFace = playerBall.childNode(withName: "face") else {
@@ -62,6 +65,19 @@ final class GameScene: SKScene {
             startPos = node
         }
         
+        if let node = childNode(withName: "velocityBooster") {
+            velo1 = node
+            
+            let physicsBody = SKPhysicsBody(circleOfRadius: 40)
+            physicsBody.collisionBitMask = 0
+            physicsBody.categoryBitMask = PhysicsCategory.booster
+            physicsBody.contactTestBitMask = PhysicsCategory.player
+            physicsBody.friction = 0
+            physicsBody.affectedByGravity = false
+            print("booster configured")
+            velo1.physicsBody = physicsBody
+        }
+        
         camera = cameraNode
         
         cameraNode.position = player.position
@@ -72,7 +88,6 @@ final class GameScene: SKScene {
     
     private func setupGround() {
         ground.physicsBody?.categoryBitMask = PhysicsCategory.ground
-        ground.physicsBody?.contactTestBitMask = PhysicsCategory.player
         ground.physicsBody?.collisionBitMask = PhysicsCategory.player
     }
     
@@ -187,8 +202,9 @@ final class GameScene: SKScene {
     private func playerContainerPhysicsBody() -> SKPhysicsBody {
         let physicsBody = SKPhysicsBody(circleOfRadius: 64)
         physicsBody.categoryBitMask = PhysicsCategory.player
-        physicsBody.contactTestBitMask = PhysicsCategory.ground | PhysicsCategory.obstacle
+        physicsBody.contactTestBitMask = PhysicsCategory.booster
         physicsBody.collisionBitMask = PhysicsCategory.ground | PhysicsCategory.obstacle
+        physicsBody.fieldBitMask = 4294967295
         physicsBody.allowsRotation = false
         physicsBody.friction = 0.2
         physicsBody.linearDamping = 0.1

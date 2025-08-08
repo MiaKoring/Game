@@ -18,12 +18,12 @@ struct Game: App {
             ContentView()
                 .environment(inputCommunicator)
                 .colorScheme(.light)
-                
         }
     }
 }
 
 struct ContentView: View {
+    @FocusState private var focused: Bool
     var body: some View {
         GeometryReader { proxy in
             Color.clear
@@ -37,6 +37,38 @@ struct ContentView: View {
                             .ignoresSafeArea()
                     }
                 }
+        }
+        .focusable()
+        .focused($focused)
+        .onKeyPress(phases: [.down, .up]) { press in
+            print("key pressed")
+            if press.phase == .down {
+                switch press.key {
+                case "a":
+                    GameInput.shared.left = true
+                case "d":
+                    GameInput.shared.right = true
+                case " ":
+                    GameInput.shared.jump = true
+                default: return .ignored
+                }
+                return .handled
+            }
+            
+            switch press.key {
+            case "a":
+                GameInput.shared.left = false
+            case "d":
+                GameInput.shared.right = false
+            default: return .ignored
+            }
+            return .handled
+        }
+        .onAppear {
+            focused = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            focused = true
         }
         
     }
@@ -69,33 +101,32 @@ struct ControlsView: View {
         var onTap: (() -> Void)? = nil
         
         var body: some View {
-            Button {
-                onTap?()
-            } label: {
+            Button {} label: {
                 Circle()
                     .fill(.clear)
                     .overlay {
                         Image(systemName: systemName)
                             .font(.title)
+                            .foregroundStyle(.black)
                     }
                     .frame(width: controlWidth)
             }
-            .contentShape(Circle())
             .glassEffect(.regular)
-            .if (pressed != nil) { view in
-                view
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                if !(pressed?.wrappedValue ?? true) {
-                                    pressed?.wrappedValue = true
-                                }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        if let pressed {
+                            if !pressed.wrappedValue {
+                                pressed.wrappedValue = true
                             }
-                            .onEnded { _ in
-                                pressed?.wrappedValue = false
-                            }
-                        )
-            }
+                        } else {
+                            onTap?()
+                        }
+                    }
+                    .onEnded { _ in
+                        pressed?.wrappedValue = false
+                    }
+                )
         }
     }
 }
